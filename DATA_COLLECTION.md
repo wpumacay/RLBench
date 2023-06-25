@@ -43,10 +43,20 @@ cd $RLBENCH_ROOT
 python tools/dataset_generator.py --tasks=put_block_in_bin --variations=2 --episodes_per_task=5
 ```
 
-The demos will be saved in the folder `/tmp/TASK_NAME`, which for our case would
-be `/tmp/put_block_in_bin`. There you'll find first the variations, and in each
-variation you'll find the episodes recorded.
+The demos will be saved in the folder `/tmp/rlbench_data/TASK_NAME`, which for
+our case would be `/tmp/rlbench_data/put_block_in_bin`. There you'll find first
+the variations, and in each variation you'll find the episodes recorded.
 
----
+The generated output will look more or less like this:
+
+![dataset-generator-output][img_dataset_generator_output]
+
+[//]: # (References)
+
+<!-- URLS -->
 
 [0]: <https://github.com/stepjam/RLBench/blob/master/tools/dataset_generator.py> (script-github-dataset-generator)
+
+<!-- IMAGES -->
+
+[img_dataset_generator_output]: readme_files/img_screenshot_saved_from_dataset_generator.png
