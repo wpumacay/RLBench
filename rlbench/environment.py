@@ -1,6 +1,6 @@
 import importlib
 from os.path import abspath, dirname, exists, join
-from typing import List, Type
+from typing import List, Optional, Type
 
 from pyrep import PyRep
 from pyrep.objects import VisionSensor
@@ -8,7 +8,7 @@ from pyrep.robots.arms.panda import Panda
 
 from rlbench import utils
 from rlbench.action_modes.action_mode import ActionMode
-from rlbench.backend.const import *  # type: ignore
+from rlbench.backend.const import TTT_FILE
 from rlbench.backend.robot import Robot
 from rlbench.backend.scene import Scene
 from rlbench.backend.task import Task
@@ -37,10 +37,10 @@ class Environment(object):
         headless: bool = False,
         static_positions: bool = False,
         robot_setup: str = "panda",
-        randomize_every: RandomizeEvery = None,
+        randomize_every: Optional[RandomizeEvery] = None,
         frequency: int = 1,
-        visual_randomization_config: VisualRandomizationConfig = None,
-        dynamics_randomization_config: DynamicsRandomizationConfig = None,
+        vis_rand_config: Optional[VisualRandomizationConfig] = None,
+        dyn_rand_config: Optional[DynamicsRandomizationConfig] = None,
         attach_grasped_objects: bool = True,
         shaped_rewards: bool = False,
     ):
@@ -53,32 +53,31 @@ class Environment(object):
 
         self._randomize_every = randomize_every
         self._frequency = frequency
-        self._visual_randomization_config = visual_randomization_config
-        self._dynamics_randomization_config = dynamics_randomization_config
+        self._visual_randomization_config = vis_rand_config
+        self._dynamics_randomization_config = dyn_rand_config
         self._attach_grasped_objects = attach_grasped_objects
         self._shaped_rewards = shaped_rewards
 
         if robot_setup not in SUPPORTED_ROBOTS.keys():
             raise ValueError(
-                "robot_configuration must be one of %s"
-                % str(SUPPORTED_ROBOTS.keys())
+                f"robot_configuration must be one of {SUPPORTED_ROBOTS.keys()}"
             )
 
         if (
             randomize_every is not None
-            and visual_randomization_config is None
-            and dynamics_randomization_config is None
+            and vis_rand_config is None
+            and dyn_rand_config is None
         ):
             raise ValueError(
                 "If domain randomization is enabled, must supply either "
-                "visual_randomization_config or dynamics_randomization_config"
+                + "vis_rand_config or dyn_rand_config"
             )
 
         self._check_dataset_structure()
-        self._pyrep = None
-        self._robot = None
-        self._scene = None
-        self._prev_task = None
+        self._pyrep: Optional[PyRep] = None
+        self._robot: Optional[Robot] = None
+        self._scene: Optional[Scene] = None
+        self._prev_task: Optional[Task] = None
 
     def _check_dataset_structure(self):
         if len(self._dataset_root) > 0 and not exists(self._dataset_root):
@@ -96,7 +95,7 @@ class Environment(object):
         except Exception as e:
             raise RuntimeError(
                 "Tried to interpret %s as a task, but failed. Only valid tasks "
-                "should belong in the tasks/ folder" % task_name
+                + "should belong in the tasks/ folder" % task_name
             ) from e
         return getattr(mod, class_name)
 
@@ -145,10 +144,13 @@ class Environment(object):
             self._pyrep.shutdown()
         self._pyrep = None
 
-    def get_task(self, task_class: Type[Task]) -> TaskEnvironment:
+    def get_task(self, task_class: Type[Task]) -> Optional[TaskEnvironment]:
         # If user hasn't called launch, implicitly call it.
         if self._pyrep is None:
             self.launch()
+
+        if self._pyrep is None or self._robot is None or self._scene is None:
+            return None
 
         self._scene.unload()
         task = task_class(self._pyrep, self._robot)
@@ -168,6 +170,10 @@ class Environment(object):
 
     @property
     def action_shape(self):
+        if self._scene is None:
+            raise RuntimeError(
+                "Scene is None. Should have initialized env by now"
+            )
         return (self._action_mode.action_shape(self._scene),)
 
     def get_demos(
@@ -196,6 +202,10 @@ class Environment(object):
         return demos
 
     def get_scene_data(self) -> dict:
+        if self._scene is None:
+            raise RuntimeError(
+                "Scene is None. Should have initialized env by now."
+            )
         """Get the data of various scene/camera information.
 
         This temporarily starts the simulator in headless mode.
