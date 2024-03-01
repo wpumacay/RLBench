@@ -1,12 +1,15 @@
 from multiprocessing import Process, Manager
 
-from pyrep.const import RenderMode
+from pyrep import PyRep
+from pyrep.const import ObjectType, RenderMode
+from pyrep.objects.shape import Shape
 
 from rlbench import ObservationConfig
 from rlbench.action_modes.action_mode import MoveArmThenGripper
 from rlbench.action_modes.arm_action_modes import JointVelocity
 from rlbench.action_modes.gripper_action_modes import Discrete
 from rlbench.backend.utils import task_file_to_task_class
+from rlbench.backend.utils import rgb_handles_to_mask
 from rlbench.environment import Environment
 import rlbench.backend.task as task
 
@@ -166,6 +169,18 @@ def save_demo(demo, example_path):
         pickle.dump(demo, f)
 
 
+def save_extra(pyrep: PyRep, example_path: str) -> None:
+    # Save the mapping of object names to their handles in a pickle file
+    objs = pyrep.get_objects_in_tree()
+    shapes = [Shape(obj.get_handle())
+        for obj in objs 
+        if obj.get_type() == ObjectType.SHAPE and obj.is_renderable()]
+    mapping = {shape.get_name(): shape.get_handle() for shape in shapes}
+
+    with open(os.path.join(example_path, "names_and_handles.pkl"), "wb") as f:
+        pickle.dump(mapping, f)
+
+
 def run(i, lock, task_index, variation_count, results, file_lock, tasks):
     """Each thread will choose one task and variation, and then gather
     all the episodes_per_task for that variation."""
@@ -292,6 +307,8 @@ def run(i, lock, task_index, variation_count, results, file_lock, tasks):
                 episode_path = os.path.join(episodes_path, EPISODE_FOLDER % ex_idx)
                 with file_lock:
                     save_demo(demo, episode_path)
+                    assert rlbench_env._pyrep is not None
+                    save_extra(rlbench_env._pyrep, episode_path)
                 break
             if abort_variation:
                 break
