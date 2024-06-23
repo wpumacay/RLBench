@@ -1,5 +1,5 @@
 import logging
-from typing import List, Callable
+from typing import List, Callable, Optional
 
 import numpy as np
 from pyrep import PyRep
@@ -12,6 +12,7 @@ from rlbench.backend.observation import Observation
 from rlbench.backend.robot import Robot
 from rlbench.backend.scene import Scene
 from rlbench.backend.task import Task
+from rlbench.backend.waypoints import Waypoint
 from rlbench.demo import Demo
 from rlbench.observation_config import ObservationConfig
 
@@ -138,6 +139,16 @@ class TaskEnvironment(object):
             self._robot.arm.set_control_loop_enabled(ctr_loop)
         return demos
 
+    def get_failures(self, amount: int, max_attempts: int = _MAX_DEMO_ATTEMPTS,
+                     callable_each_step: Optional[Callable[[Observation], None]] = None,
+                     callable_each_waypoint: Optional[Callable[[Waypoint], None]] = None) -> List[Demo]:
+        ctr_loop = self._robot.arm.joints[0].is_control_loop_enabled()
+        self._robot.arm.set_control_loop_enabled(True)
+        demos = self._get_live_failures(
+            amount, callable_each_step, callable_each_waypoint, max_attempts)
+        self._robot.arm.set_control_loop_enabled(ctr_loop)
+        return demos
+
     def _get_live_demos(self, amount: int,
                         callable_each_step: Callable[
                             [Observation], None] = None,
@@ -151,6 +162,31 @@ class TaskEnvironment(object):
                 try:
                     demo = self._scene.get_demo(
                         callable_each_step=callable_each_step)
+                    demo.random_seed = random_seed
+                    demos.append(demo)
+                    break
+                except Exception as e:
+                    attempts -= 1
+                    logging.info('Bad demo. ' + str(e))
+            if attempts <= 0:
+                raise RuntimeError(
+                    'Could not collect demos. Maybe a problem with the task?')
+        return demos
+
+    def _get_live_failures(self, amount: int,
+                           callable_each_step: Optional[Callable[[Observation], None]] = None,
+                           callable_each_waypoint: Optional[Callable[[Waypoint], None]] = None,
+                           max_attempts: int = _MAX_DEMO_ATTEMPTS) -> List[Demo]:
+        demos = []
+        for i in range(amount):
+            attempts = max_attempts
+            while attempts > 0:
+                random_seed = np.random.get_state()
+                self.reset()
+                try:
+                    demo = self._scene.get_failure(
+                        callable_each_step=callable_each_step,
+                        callable_each_waypoint=callable_each_waypoint)
                     demo.random_seed = random_seed
                     demos.append(demo)
                     break

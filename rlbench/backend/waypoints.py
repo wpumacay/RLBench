@@ -24,6 +24,9 @@ class Waypoint(object):
     def get_path(self, ignore_collisions=False) -> ArmConfigurationPath:
         raise NotImplementedError()
 
+    def clear_ext(self) -> None:
+        self._ext = ""
+
     def get_ext(self) -> str:
         return self._ext
 
