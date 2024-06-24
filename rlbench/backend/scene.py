@@ -448,6 +448,7 @@ class Scene(object):
     def get_failure(self, record: bool = True,
                     callable_each_step: Optional[Callable[[Observation], None]] = None,
                     callable_each_waypoint: Optional[Callable[[Waypoint], None]] = None,
+                    callable_each_end_waypoint: Optional[Callable[[Waypoint], None]] = None,
                     randomly_place: bool = True) -> Demo:
         """Returns a demo (list of observations)"""
 
@@ -502,6 +503,9 @@ class Scene(object):
                     success, term = self.task.success()
 
                 point.end_of_path()
+
+                if callable_each_end_waypoint is not None:
+                    callable_each_end_waypoint(point)
 
                 path.clear_visualization()
 
@@ -566,6 +570,11 @@ class Scene(object):
                 success, term = self.task.success()
                 if success:
                     break
+
+        success, term = self.task.success()
+        if success:
+            raise DemoError('Demo was completed, but failure did not happen.',
+                            self.task)
 
         processed_demo = Demo(demo)
         processed_demo.num_reset_attempts = self._attempts + 1

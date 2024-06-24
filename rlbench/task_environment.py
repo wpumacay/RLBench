@@ -142,11 +142,13 @@ class TaskEnvironment(object):
     def get_failures(self, amount: int, max_attempts: int = _MAX_DEMO_ATTEMPTS,
                      callable_each_step: Optional[Callable[[Observation], None]] = None,
                      callable_each_waypoint: Optional[Callable[[Waypoint], None]] = None,
+                     callable_each_end_waypoint: Optional[Callable[[Waypoint], None]] = None,
                      callable_each_reset: Optional[Callable[[], None]] = None) -> List[Demo]:
         ctr_loop = self._robot.arm.joints[0].is_control_loop_enabled()
         self._robot.arm.set_control_loop_enabled(True)
         demos = self._get_live_failures(
-            amount, callable_each_step, callable_each_waypoint, callable_each_reset, max_attempts)
+            amount, callable_each_step, callable_each_waypoint, callable_each_end_waypoint,
+            callable_each_reset, max_attempts)
         self._robot.arm.set_control_loop_enabled(ctr_loop)
         return demos
 
@@ -177,6 +179,7 @@ class TaskEnvironment(object):
     def _get_live_failures(self, amount: int,
                            callable_each_step: Optional[Callable[[Observation], None]] = None,
                            callable_each_waypoint: Optional[Callable[[Waypoint], None]] = None,
+                           callable_each_end_waypoint: Optional[Callable[[Waypoint], None]] = None,
                            callable_each_reset: Optional[Callable[[], None]] = None,
                            max_attempts: int = _MAX_DEMO_ATTEMPTS) -> List[Demo]:
         demos = []
@@ -190,7 +193,8 @@ class TaskEnvironment(object):
                 try:
                     demo = self._scene.get_failure(
                         callable_each_step=callable_each_step,
-                        callable_each_waypoint=callable_each_waypoint)
+                        callable_each_waypoint=callable_each_waypoint,
+                        callable_each_end_waypoint=callable_each_end_waypoint)
                     demo.random_seed = random_seed
                     demos.append(demo)
                     break
