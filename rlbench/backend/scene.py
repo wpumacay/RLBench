@@ -467,14 +467,17 @@ class Scene(object):
                               randomly_place=randomly_place)
         self._has_init_episode = False
 
+        # Force populating waypoints in task first
+        _ = self.task.get_waypoints()
+        if callable_on_start is not None:
+            assert self.task is not None
+            callable_on_start(self.task)
+
+        # Get the already populated waypoints
         waypoints = self.task.get_waypoints()
         if len(waypoints) == 0:
             raise NoWaypointsError(
                 'No waypoints were found.', self.task)
-
-        if callable_on_start is not None:
-            assert self.task is not None
-            callable_on_start(self.task)
 
         demo = []
         if record:
