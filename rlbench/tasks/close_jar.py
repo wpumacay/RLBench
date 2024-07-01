@@ -19,6 +19,12 @@ class CloseJar(Task):
         self.boundary = Shape('spawn_boundary')
         self.conditions = [NothingGrasped(self.robot.gripper)]
 
+        self._waypoint3 = Dummy("waypoint3")
+        self._waypoint4 = Dummy("waypoint4")
+        self._waypoint5 = Dummy("waypoint5")
+        self._wp4_to_wp3 = self._waypoint4.get_pose(relative_to=self._waypoint3)
+        self._wp5_to_wp4 = self._waypoint5.get_pose(relative_to=self._waypoint4)
+
     def init_episode(self, index: int) -> List[str]:
         b = SpawnBoundary([self.boundary])
         for obj in self.jars:
@@ -26,10 +32,11 @@ class CloseJar(Task):
         success = ProximitySensor('success')
         success.set_position([0.0, 0.0, 0.05], relative_to=self.jars[index % 2],
                              reset_dynamics=False)
-        w3 = Dummy('waypoint3')
-        w3.set_orientation([-np.pi, 0, -np.pi], reset_dynamics=False)
-        w3.set_position([0.0, 0.0, 0.125], relative_to=self.jars[index % 2],
+        self._waypoint3.set_orientation([-np.pi, 0, -np.pi], reset_dynamics=False)
+        self._waypoint3.set_position([0.0, 0.0, 0.125], relative_to=self.jars[index % 2],
                         reset_dynamics=False)
+        self._waypoint4.set_pose(self._wp4_to_wp3, relative_to=self._waypoint3)
+        self._waypoint5.set_pose(self._wp5_to_wp4, relative_to=self._waypoint4)
         target_color_name, target_color_rgb = colors[index]
         color_choice = np.random.choice(
             list(range(index)) + list(
