@@ -456,6 +456,7 @@ class Scene(object):
                     callable_each_step: Optional[Callable[[Observation], None]] = None,
                     callable_each_waypoint: Optional[Callable[[Waypoint], None]] = None,
                     callable_each_end_waypoint: Optional[Callable[[Waypoint], None]] = None,
+                    callable_on_start: Optional[Callable[[Task], None]] = None,
                     randomly_place: bool = True) -> Demo:
         """Returns a demo (list of observations)"""
 
@@ -470,6 +471,10 @@ class Scene(object):
         if len(waypoints) == 0:
             raise NoWaypointsError(
                 'No waypoints were found.', self.task)
+
+        if callable_on_start is not None:
+            assert self.task is not None
+            callable_on_start(self.task)
 
         demo = []
         if record:
