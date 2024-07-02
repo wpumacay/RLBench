@@ -457,6 +457,7 @@ class Scene(object):
                     callable_each_waypoint: Optional[Callable[[Waypoint], None]] = None,
                     callable_each_end_waypoint: Optional[Callable[[Waypoint], None]] = None,
                     callable_on_start: Optional[Callable[[Task], None]] = None,
+                    callable_on_end: Optional[Callable[[], None]] = None,
                     randomly_place: bool = True) -> Demo:
         """Returns a demo (list of observations)"""
 
@@ -587,6 +588,9 @@ class Scene(object):
                 success, term = self.task.success()
                 if success:
                     break
+
+        if callable_on_end is not None:
+            callable_on_end()
 
         processed_demo = Demo(demo)
         processed_demo.num_reset_attempts = self._attempts + 1
