@@ -1,5 +1,5 @@
 import logging
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Tuple
 
 import numpy as np
 from pyrep import PyRep
@@ -145,14 +145,14 @@ class TaskEnvironment(object):
                      callable_each_end_waypoint: Optional[Callable[[Waypoint], None]] = None,
                      callable_each_reset: Optional[Callable[[], None]] = None,
                      callable_on_start: Optional[Callable[[Task], None]] = None,
-                     callable_on_end: Optional[Callable[[], None]] = None) -> List[Demo]:
+                     callable_on_end: Optional[Callable[[], None]] = None) -> Tuple[List[Demo], bool]:
         ctr_loop = self._robot.arm.joints[0].is_control_loop_enabled()
         self._robot.arm.set_control_loop_enabled(True)
-        demos = self._get_live_failures(
+        demos, success = self._get_live_failures(
             amount, callable_each_step, callable_each_waypoint, callable_each_end_waypoint,
             callable_each_reset, callable_on_start, callable_on_end, max_attempts)
         self._robot.arm.set_control_loop_enabled(ctr_loop)
-        return demos
+        return demos, success
 
     def _get_live_demos(self, amount: int,
                         callable_each_step: Callable[
@@ -185,8 +185,9 @@ class TaskEnvironment(object):
                            callable_each_reset: Optional[Callable[[], None]] = None,
                            callable_on_start: Optional[Callable[[Task], None]] = None,
                            callable_on_end: Optional[Callable[[], None]] = None,
-                           max_attempts: int = _MAX_DEMO_ATTEMPTS) -> List[Demo]:
+                           max_attempts: int = _MAX_DEMO_ATTEMPTS) -> Tuple[List[Demo], bool]:
         demos = []
+        success = True
         for i in range(amount):
             attempts = max_attempts
             while attempts > 0:
@@ -195,7 +196,7 @@ class TaskEnvironment(object):
                 if callable_each_reset is not None:
                     callable_each_reset()
                 try:
-                    demo = self._scene.get_failure(
+                    demo, success = self._scene.get_failure(
                         callable_each_step=callable_each_step,
                         callable_each_waypoint=callable_each_waypoint,
                         callable_each_end_waypoint=callable_each_end_waypoint,
@@ -210,7 +211,7 @@ class TaskEnvironment(object):
             if attempts <= 0:
                 raise RuntimeError(
                     'Could not collect demos. Maybe a problem with the task?')
-        return demos
+        return demos, success
 
     def reset_to_demo(self, demo: Demo) -> (List[str], Observation):
         demo.restore_state()

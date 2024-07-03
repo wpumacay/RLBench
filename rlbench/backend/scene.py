@@ -1,4 +1,4 @@
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Tuple
 
 import numpy as np
 from pyrep import PyRep
@@ -458,7 +458,7 @@ class Scene(object):
                     callable_each_end_waypoint: Optional[Callable[[Waypoint], None]] = None,
                     callable_on_start: Optional[Callable[[Task], None]] = None,
                     callable_on_end: Optional[Callable[[], None]] = None,
-                    randomly_place: bool = True) -> Demo:
+                    randomly_place: bool = True) -> Tuple[Demo, bool]:
         """Returns a demo (list of observations)"""
 
         if not self._has_init_task:
@@ -592,9 +592,11 @@ class Scene(object):
         if callable_on_end is not None:
             callable_on_end()
 
+        success, _ = self.task.success()
+
         processed_demo = Demo(demo)
         processed_demo.num_reset_attempts = self._attempts + 1
-        return processed_demo
+        return processed_demo, success
 
     def get_observation_config(self) -> ObservationConfig:
         return self._obs_config
