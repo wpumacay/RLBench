@@ -145,7 +145,7 @@ class TaskEnvironment(object):
                      callable_each_end_waypoint: Optional[Callable[[Waypoint], None]] = None,
                      callable_each_reset: Optional[Callable[[], None]] = None,
                      callable_on_start: Optional[Callable[[Task], None]] = None,
-                     callable_on_end: Optional[Callable[[], None]] = None) -> Tuple[List[Demo], bool]:
+                     callable_on_end: Optional[Callable[[bool], None]] = None) -> Tuple[List[Demo], bool]:
         ctr_loop = self._robot.arm.joints[0].is_control_loop_enabled()
         self._robot.arm.set_control_loop_enabled(True)
         demos, success = self._get_live_failures(
@@ -184,7 +184,7 @@ class TaskEnvironment(object):
                            callable_each_end_waypoint: Optional[Callable[[Waypoint], None]] = None,
                            callable_each_reset: Optional[Callable[[], None]] = None,
                            callable_on_start: Optional[Callable[[Task], None]] = None,
-                           callable_on_end: Optional[Callable[[], None]] = None,
+                           callable_on_end: Optional[Callable[[bool], None]] = None,
                            max_attempts: int = _MAX_DEMO_ATTEMPTS) -> Tuple[List[Demo], bool]:
         demos = []
         success = True
